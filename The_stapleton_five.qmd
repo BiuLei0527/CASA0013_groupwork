@@ -1,0 +1,154 @@
+---
+bibliography: bio.bib
+csl: harvard-cite-them-right.csl
+title: Group Name's Group Project
+execute:
+  echo: false
+  freeze: true
+format:
+  html:
+    code-copy: true
+    code-link: true
+    toc: true
+    toc-title: On this page
+    toc-depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+  pdf:
+    include-in-header:
+      text: |
+        \addtokomafont{disposition}{\rmfamily}
+    mainfont: Spectral
+    sansfont: Roboto Flex
+    monofont: InputMonoCondensed
+    papersize: a4
+    geometry:
+      - top=25mm
+      - left=40mm
+      - right=30mm
+      - bottom=25mm
+      - heightrounded
+    toc: false
+    number-sections: false
+    colorlinks: true
+    highlight-style: github
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.4
+  kernelspec:
+    display_name: Python (base)
+    language: python
+    name: base
+---
+
+```{python}
+import os
+import pandas as pd
+```
+
+```{python}
+host = 'https://orca.casa.ucl.ac.uk'
+path = '~jreades/data'
+file = '20240614-London-listings.csv.gz'
+url  = f'{host}/{path}/{file}'
+
+if os.path.exists(file):
+  df = pd.read_csv(file, compression='gzip', low_memory=False)
+else: 
+  df = pd.read_csv(url, compression='gzip', low_memory=False)
+  df.to_csv(file, compression='gzip', index=False)
+```
+
+## 1. Who collected the InsideAirbnb data?
+
+::: {.10/11/2024}
+
+( 2 points; Answer due Week 7 )
+
+::: 
+
+Inside Airbnb is dedicated to providing the community with data on the impact of Airbnb on residential development and other issues such as housing costs through access to Airbnb data.Its founder Murray Cox began conceiving the project in 2014 and started collecting Airbnb data, aggregating it into an interactive web-based interface [@PuckLo]. He is an artist, activist, and technologist, while artist John Morris designed and directed the user experience on the website [@insideairbnb]. After many years of development, the website has many partners, collaborators and new members such as Taylor Higgins, and the advisory board has been formed to help with project development, data collection, etc.
+
+## 2. Why did they collect the InsideAirbnb data?
+
+::: {.11/11/2024}
+
+( 4 points; Answer due Week 7 )
+
+:::
+
+The project was inspired by the DIVAS' summer camp programme in 2014, when creator Murray Cox, in collaboration with Clarisa James, designed courses and used visualisation methods such as maps to make young people in Brooklyn aware of the impact of urban gentrification. After that, Murray pondered the reasons for displacement and was influenced by several journalists who collected Airbnb data, and began to reflect on "How was Airbnb being used in my neighborhood?". In addition, he was influenced by the Anti-Eviction Mapping Project, Window into Airbnb's hidden impact on S.F. and other blog and news articles, and people from different organisations and projects helped him with data collection, processing and other aspects, such as technical issues, New York State zoning laws, and supporters from different fields helped him with testing. [@PuckLo, @insideairbnb]
+
+More important background information comes from a series of social concerns and issues raised by Airbnb. Murray is a critic of the sharing economy, which he believes is ‘threatening affordable housing, exacerbating gentrification“ [@Katz], and sharing economy is the individuals transferring underutilised resources to others, such as Uber and Airbnb[@alsudais].
+
+In 2015, Airbnb released data for the first time from its online platform in New York City. These data snapshots seem to paint a good picture of the viosion and the potential for business development. For example, the data showed that only a small number of hosts own multiple listings. However, after comparing the data with the data they collected themselves, Murray and Tom Slee found that many of the listings had disappeared, which is misleading description of its business. The disappeared represent multiple listings controlled by commercial operators, which not only violated New York State's multiple residence law, but also contravened Airbnb's original vision and commitment to the community. After releasing the relevant report, thr facts Inside Airbnb revealed have attracted a lot of attention. Murray and Inside Airbnb would also play a regulatory role and help tenant groups in other cities around the world defend their rights.[@Katz, @CoxSlee]
+
+It is based on these inspirations and facts that Inside Airbnb has been working hard to collect relevant data, and after the release of the report on New York, they have also caught increasing attention and invitations for cooperation. They have been collecting data on Airbnb worldwide, and have been sticking up for the housing development for the community, rights of tenants and single-house landlords.
+
+```{python}
+print(f"Data frame is {df.shape[0]:,} x {df.shape[1]:,}")
+```
+
+```{python}
+ax = df.host_listings_count.plot.hist(bins=50);
+ax.set_xlim([0,500]);
+```
+
+## 3. How was the InsideAirbnb data collected?  
+
+::: {.12/11/2024}
+
+( 5 points; Answer due Week 8 )
+
+:::
+
+Inside Airbnb provides large open dataset that collects data from the official public listings on the Airbnb website, including detailed descriptions, property types, and user reviews. The data is collected through python scripts, which are sourced from Github and other online resources[@alsudais], on each listing page on the website.
+
+The data collection can be divided into the following stages: First, find all public listings on the Airbnb website as much as possible. Second, access each page through the script to collect information such as the ID of the listing, the type of home, the time it was published, the number of reviews, and the location. Finally, aggregate the data and verify it with the number of data published by Airbnb. They use the number of reviews as the number of visits to the listing, because they lack internal data[@CoxSlee]
+
+They state that no private information is used in the data collection process and that the names of the listings are compiled by comparing the geographical coordinates of the listings with the city-to-community definitions. Also in a later development, 50% of the comment rate was converted to an estimated booking and an average length of stay was assigned to each city.[@insideairbnb2]
+
+## 4. How does the method of collection impact the completeness and/or accuracy of the InsideAirbnb data set's representation of the process it seeks to study, and what wider issues does this raise?
+
+::: {.duedate}
+
+( 11 points; Answer due Week 9 )
+
+:::
+
+## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
+
+::: {.duedate}
+
+( 18 points; Answer due {{< var assess.group-date >}} )
+
+:::
+
+## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and Listing types suggest about the nature of Airbnb lets in London? 
+
+::: {.duedate}
+
+( 15 points; Answer due {{< var assess.group-date >}} )
+
+:::
+
+## 7. Drawing on your previous answers, and supporting your response with evidence (e.g. figures, maps, and statistical analysis/models), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
+
+::: {.duedate}
+
+( 45 points; Answer due {{< var assess.group-date >}} )
+
+:::
+
+## Sustainable Authorship Tools
+
+Your QMD file should automatically download your BibTeX file. We will then re-run the QMD file to generate the output successfully.
+
+Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used: [Spectral](https://fonts.google.com/specimen/Spectral) (mainfont), [Roboto](https://fonts.google.com/specimen/Roboto) (<span style="font-family:Sans-Serif;">sansfont</span>) and [JetBrains Mono](https://fonts.google.com/specimen/JetBrains%20Mono) (`monofont`). 
+
+## References
