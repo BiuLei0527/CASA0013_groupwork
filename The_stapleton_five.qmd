@@ -72,7 +72,7 @@ else:
 
 ::: 
 
-Inside Airbnb is dedicated to providing the community with data on the impact of Airbnb on residential development and other issues such as housing costs through access to Airbnb data.Its founder Murray Cox began conceiving the project in 2014 and started collecting Airbnb data, aggregating it into an interactive web-based interface [@PuckLo]. He is an artist, activist, and technologist, while artist John Morris designed and directed the user experience on the website [@insideairbnb]. After many years of development, the website has many partners, collaborators and new members such as Taylor Higgins, and the advisory board has been formed to help with project development, data collection, etc.
+Inside Airbnb, founded in 2015, its founder Murray Cox began conceiving the project in 2014 and started collecting Airbnb data and aggregating it into an interactive web-based interface [@PuckLo]. After years of development, the website has collaborators, new members, and advisory board to help with project development, data collection etc.
 
 ## 2. Why did they collect the InsideAirbnb data?
 
@@ -82,13 +82,11 @@ Inside Airbnb is dedicated to providing the community with data on the impact of
 
 :::
 
-The project was inspired by the DIVAS' summer camp programme in 2014, when creator Murray Cox, in collaboration with Clarisa James, designed courses and used visualisation methods such as maps to make young people in Brooklyn aware of the impact of urban gentrification. After that, Murray pondered the reasons for displacement and was influenced by several journalists who collected Airbnb data, and began to reflect on "How was Airbnb being used in my neighborhood?". In addition, he was influenced by the Anti-Eviction Mapping Project, Window into Airbnb's hidden impact on S.F. and other blog and news articles, and people from different organisations and projects helped him with data collection, processing and other aspects, such as technical issues, New York State zoning laws, and supporters from different fields helped him with testing. [@PuckLo, @insideairbnb]
+This project was inspired by the DIVAS summer camp project in 2014. Afterwards, Murray considered the reasons for displacement and began to reflect on ‘how Airbnb is used in my community.' [@PuckLo, @insideairbnb_about].
 
-More important background information comes from a series of social concerns and issues raised by Airbnb. Murray is a critic of the sharing economy, which he believes is ‘threatening affordable housing, exacerbating gentrification“ [@Katz], and sharing economy is the individuals transferring underutilised resources to others, such as Uber and Airbnb[@alsudais].
+More important reasons come from the social concerns and issues raised by Airbnb. Murray, criticising the sharing economy, argues that it ‘threatens affordable housing and exacerbates gentrification' [@Katz], where individuals transfer underutilised resources to others, such as Uber and Airbnb [@alsudais]. In 2015, Murray and Tom Slee discovered that many listings had disappeared from Airbnb data of New York, which was a misleading depiction of their business and went against Airbnb's original vision and commitment to the community.
 
-In 2015, Airbnb released data for the first time from its online platform in New York City. These data snapshots seem to paint a good picture of the viosion and the potential for business development. For example, the data showed that only a small number of hosts own multiple listings. However, after comparing the data with the data they collected themselves, Murray and Tom Slee found that many of the listings had disappeared, which is misleading description of its business. The disappeared represent multiple listings controlled by commercial operators, which not only violated New York State's multiple residence law, but also contravened Airbnb's original vision and commitment to the community. After releasing the relevant report, thr facts Inside Airbnb revealed have attracted a lot of attention. Murray and Inside Airbnb would also play a regulatory role and help tenant groups in other cities around the world defend their rights.[@Katz, @CoxSlee]
-
-It is based on these inspirations and facts that Inside Airbnb has been working hard to collect relevant data, and after the release of the report on New York, they have also caught increasing attention and invitations for cooperation. They have been collecting data on Airbnb worldwide, and have been sticking up for the housing development for the community, rights of tenants and single-house landlords.
+It is based on these inspirations and facts that Inside Airbnb has been working hard to collect data about Airbnb worldwide and stand up for the development of community housing and the rights of tenants and single room landlords.
 
 ```{python}
 print(f"Data frame is {df.shape[0]:,} x {df.shape[1]:,}")
@@ -107,15 +105,15 @@ ax.set_xlim([0,500]);
 
 :::
 
-Inside Airbnb provides large open dataset that collects data from the official public listings on the Airbnb website, including detailed descriptions, property types, and user reviews. The data is collected through python scripts, which are sourced from Github and other online resources[@alsudais], on each listing page on the website.
+Inside Airbnb provides large open dataset that collects data from the official public listings on the Airbnb website, including detailed descriptions, property types, and user reviews. The data is collected through python scripts, which are sourced from Github and other online resource[@alsudais], each listing page on the website.
 
-The data collection can be divided into the following stages: First, find all public listings on the Airbnb website as much as possible. Second, access each page through the script to collect information such as the ID of the listing, the type of home, the time it was published, the number of reviews, and the location. Finally, aggregate the data and verify it with the number of data published by Airbnb. They use the number of reviews as the number of visits to the listing, because they lack internal data[@CoxSlee]
+The data collection can be divided into the following stages: First, finding all public listings on the Airbnb website as much as possible. Second, accessing each page through the script to collect information such as the ID of the listing, the type of home, the time it was published, the number of reviews, and the location. Finally, aggregating the data and verifying it with the number of data published by Airbnb. They use the number of reviews as the number of visits to the listing for they lack internal data [@CoxSlee].
 
-They state that no private information is used in the data collection process and that the names of the listings are compiled by comparing the geographical coordinates of the listings with the city-to-community definitions. Also in a later development, 50% of the comment rate was converted to an estimated booking and an average length of stay was assigned to each city.[@insideairbnb2]
+They state that no private information is used in the data collection process and that the names of the listings are compiled by comparing the geographical coordinates of the listings with the city-to-community definitions. Also in a later development, 50% of the comment rate was converted to an estimated booking and an average length of stay was assigned to each city [@insideairbnb_data_assumptions].
 
 ## 4. How does the method of collection impact the completeness and/or accuracy of the InsideAirbnb data set's representation of the process it seeks to study, and what wider issues does this raise?
 
-::: {.duedate}
+::: {.15/11/2024}
 
 ( 11 points; Answer due Week 9 )
 
@@ -123,30 +121,34 @@ They state that no private information is used in the data collection process an
 
 ## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
 
-::: {.duedate}
+::: {.18/11/2024}
 
 ( 18 points; Answer due {{< var assess.group-date >}} )
 
 :::
+
 We analyze its ethical issues through four stages: purpose of data use，data collection, data storage, use and impact of analysis results.
 
 1. Purpose of Data Use:
-The transparency of Inside Airbnb itself: Inside Airbnb's program mission is to protect the city from short-term rentals (Inside Airbnb, n.d.). When using Inside Airbnb data for research, there is a need to consider the alignment of the research objectives with its mission. This may diminish the objectivity of the data and lead to biased results in the analysis.
+The transparency of Inside Airbnb itself: Inside Airbnb's mission statement is to protect the city from short-term rentals [@insideairbnb_about]. When using Inside Airbnb data for research, there is a need to consider the alignment of the research objectives with its mission. This may diminish the objectivity of the data and lead to biased results in the analysis.
 
 2. Data Collection:
-Data source: Inside Airbnb says it’s not endorsed by Airbnb (Inside Airbnb, n.d.) . Airbnb expressly states that it prohibits using automated means to access or collect data from the Airbnb Platform. But Inside Airbnb collects its data through Python scripts may involve legal and ethical controversies that should be considered.
-The accuracy of Inside Airbnb data: Inside Airbnb says it is not responsible for the accuracy of the information (Inside Airbnb, n.d.). It just provides snapshot data at a point in time and anonymizes listing location information. These can affect the timeliness and accuracy of the analysis.
-Data privacy and security: Being able to access or collect data does not mean that it is ethical to use that data (Boyd et al. 2014). Although Inside Airbnb claims in its disclaimer that the data is public, it involves sensitive content such as names, photos, locations and reviews, which may indirectly expose individuals' privacy, and trigger ethical judging of data collection and privacy security.
+Data source: Inside Airbnb says it’s not endorsed by Airbnb [@insideairbnb_data_assumptions]. Airbnb expressly states that it prohibits using automated means to access or collect data from the Airbnb Platform. But whether Inside Airbnb collects its data through Python scripts may involve legal and ethical controversies that should be considered.
+
+The accuracy of Inside Airbnb data: Inside Airbnb says it is not responsible for the accuracy of the information [@insideairbnb_data_assumptions]. It just provides snapshot data at a point in time and anonymizes listing location information. These can affect the timeliness and accuracy of the analysis.
+
+Data privacy and security: Being able to access or collect data does not mean that it is ethical to use that data [@boyd2014networked]. Although Inside Airbnb claims in its disclaimer that the data is safe and full-protected, it is risky that it involves sensitive content such as names, photos, locations and reviews, which may indirectly expose individuals' privacy, and trigger ethical judging of data collection and privacy security.
 
 3. Data storage
-Fairness of data access: Inside Airbnb provides the most recent 12 months of data for free, but access to archived data is subject to review or even payment (Inside Airbnb, n.d.), which may be a hindrance to researchers or organizations with limited resources.
+Fairness of data access: Inside Airbnb provides the most recent 12 months of data for free, but access to archived data is subject to review or even payment [@insideairbnb_data_assumptions], which may be a hindrance to researchers or organizations with limited resources.
+
 Security Risks: Long-term storage of archived data may be subject to security risks associated with data aging, storage media damage, or technology updates. Without regular security audits and backup management, data security may be jeopardized.
 
 4. Use and Impacts of Analysis Results:
 A risk of misuse: The analysis results derived from public data could be taken out of context to support unfair policies or biased conclusions.
 Unfair business competition: conclusions and analyses based on Inside Airbnb data could be exploited by competitors in the same industry to harm Airbnb or landlords engaged in lawful operations.
-Challenges of public distrust: deeping public distrust in the sharing economy, causing people to overlook the economic benefits that platforms like Airbnb bring to certain landlords and tenants.
 
+Challenges of public distrust: deepening public distrust and doubt about the sharing economy, inducing people to overlook the economic benefits that platforms like Airbnb may bring to certain landlords and tenants.
 
 ## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and Listing types suggest about the nature of Airbnb lets in London? 
 
