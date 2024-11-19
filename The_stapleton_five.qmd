@@ -105,7 +105,7 @@ ax.set_xlim([0,500]);
 
 :::
 
-Inside Airbnb provides large open dataset that collects data from the official public listings on the Airbnb website, including detailed descriptions, property types, and user reviews. The data is collected through python scripts, which are sourced from Github and other online resource[@alsudais], each listing page on the website.
+Inside Airbnb provides large open dataset that collects data from the official public listings on the Airbnb website, including detailed descriptions, property types, and user reviews. The data is collected through python scripts, which are sourced from Github and other online resource [@alsudais], each listing page on the website.
 
 The data collection can be divided into the following stages: First, finding all public listings on the Airbnb website as much as possible. Second, accessing each page through the script to collect information such as the ID of the listing, the type of home, the time it was published, the number of reviews, and the location. Finally, aggregating the data and verifying it with the number of data published by Airbnb. They use the number of reviews as the number of visits to the listing for they lack internal data [@CoxSlee].
 
@@ -118,6 +118,10 @@ They state that no private information is used in the data collection process an
 ( 11 points; Answer due Week 9 )
 
 :::
+
+It is obvious that the main data source of IA (Inside Airbnb) lacks accuracy, as it is obtained by directly scraping data collected by Airbnb itself from its website [@CoxSlee]. In addition, other data sources for the IA dataset are also unreliable, which are related to the data collection methods of Python scripts. Specifically, Python scripts are likely to generate IA datasets by copying scripts that lack responsible maintenance on any websites (Behind Inside Airbnb, 2020), with GitHub being an example [@alsudais]. Moreover, the automated generation of code for data collection services for IA datasets may encounter issues such as ignoring list types and making incorrect links [@alsudais], which can lead to problems include duplicating data collection, data position errors, and data omissions. For example, automated code may simplify or truncate some property review fields.
+
+Overall, the IA dataset covers a wide range of data, such as various housing types and different landlord characteristics. This is beneficial for the process of data research. However, unreliable data sources and automatically generated codes affect the research results of IA. In addition, due to the setting of monthly updates [@alsudais], the dataset of IA is not updated in real time, which brings the problem that the existing dataset cannot represent the real data. As a result, the IA dataset can only representbthe process it wishes to study to some extent. Specifically, only when the research scope, problem definition, time constraints, and data processing methods are clearly defined, can the IA dataset effectively reflect analytical research.
 
 ## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
 
