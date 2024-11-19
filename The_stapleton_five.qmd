@@ -128,6 +128,15 @@ They state that no private information is used in the data collection process an
 ( 18 points; Answer due {{< var assess.group-date >}} )
 
 :::
+We analyze its ethical issues through four stages: purpose of data use，data collection, data storage, use and impact of analysis results.
+
+1. Purpose of Data Use:
+The transparency of Inside Airbnb itself: Inside Airbnb's program mission is to protect the city from short-term rentals (Inside Airbnb, n.d.). When using Inside Airbnb data for research, there is a need to consider the alignment of the research objectives with its mission. This may diminish the objectivity of the data and lead to biased results in the analysis.
+
+2. Data Collection:
+Data source: Inside Airbnb says it’s not endorsed by Airbnb (Inside Airbnb, n.d.) . Airbnb expressly states that it prohibits using automated means to access or collect data from the Airbnb Platform. But Inside Airbnb collects its data through Python scripts may involve legal and ethical controversies that should be considered.
+The accuracy of Inside Airbnb data: Inside Airbnb says it is not responsible for the accuracy of the information (Inside Airbnb, n.d.). It just provides snapshot data at a point in time and anonymizes listing location information. These can affect the timeliness and accuracy of the analysis.
+Data privacy and security: Being able to access or collect data does not mean that it is ethical to use that data (Boyd et al. 2014). Although Inside Airbnb claims in its disclaimer that the data is public, it involves sensitive content such as names, photos, locations and reviews, which may indirectly expose individuals' privacy, and trigger ethical judging of data collection and privacy security.
 
 ## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and Listing types suggest about the nature of Airbnb lets in London? 
 
