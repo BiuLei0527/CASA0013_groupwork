@@ -123,6 +123,8 @@ It is obvious that the main data source of IA (Inside Airbnb) lacks accuracy, as
 
 Overall, the IA dataset covers a wide range of data, such as various housing types and different landlord characteristics. This is beneficial for the process of data research. However, unreliable data sources and automatically generated codes affect the research results of IA. In addition, due to the setting of monthly updates [@alsudais], the dataset of IA is not updated in real time, which brings the problem that the existing dataset cannot represent the real data. As a result, the IA dataset can only representbthe process it wishes to study to some extent. Specifically, only when the research scope, problem definition, time constraints, and data processing methods are clearly defined, can the IA dataset effectively reflect analytical research.
 
+The formation of IA datasets due to inaccurate collection methods has resulted in more serious consequences, including impacts on research results, public trust towards the internet, and political and financial advice. For reseachers who use inaccurate IA datasets for research, the reproducibility of their research results will be doubted. Additionally, as the errors in the IA dataset increase, the public's trust in online information will decrease accordingly. Furthermore, as an important reference, if the IA dataset lacks accuracy, relevant political and economic decisions may be misled.
+
 ## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
 
 ::: {.18/11/2024}
