@@ -54,6 +54,7 @@ import numpy as np
 import matplotlib.pyplot as plt  
 import seaborn as sns
 import geopandas as gpd
+import requests
 from requests import get
 ```
 
@@ -217,18 +218,19 @@ file_name='Boroughs.gpkg'
 response=requests.get(url)
 with open (file_name, 'wb') as file:
     file.write(response.content)
-boroughs=gdf.read_file(file_name)
+boroughs=gpd.read_file(file_name)
 ```
 
 ```{python}
 bnb_gdf = gdf_bnb.to_crs(boroughs.crs)
 fig, ax=plt.subplots(figsize=(12, 8))
-boroughs.plot(ax=ax, facecolor='grey', edgecolor='black', alpha=0.7)
+boroughs.plot(ax=ax, facecolor='lightgrey', edgecolor='black', alpha=0.7)
 types=bnb_gdf['room_type'].unique().tolist()
-colors=['red','green','skyblue','purple']
+colors=['#A23B72','#6CB4EE','#3D315B','#F2C641'] 
+markers=['*','s','^','+']
 for t in types:
     subset=bnb_gdf[bnb_gdf['room_type']==t]
-    subset.plot(ax=ax, markersize=1, color=colors[types.index(t)], label=t)
+    subset.plot(ax=ax, markersize=2, color=colors[types.index(t)], label=t, marker=markers[types.index(t)])
 ax.legend(title='Room Type', markerscale=5)
 ax.set_title("Airbnb Listings by Room Type")
 plt.show()
@@ -270,4 +272,3 @@ cloud_des=WordCloud(background_color='white',max_words=120).generate_from_freque
 ax.imshow(cloud_des) 
 ax.axis("off")
 ```
-
