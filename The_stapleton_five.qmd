@@ -237,9 +237,42 @@ plt.show()
 ```
 
 ```{python}
+import plotly.graph_objects as go
+boroughs_json=boroughs.__geo_interface__
+fig = go.Figure()
+fig.add_trace(go.Choroplethmapbox(geojson=boroughs_json, locations=boroughs['NAME'], colorscale="Cividis", marker=dict(opacity=0.75), showscale=False))
+types=bnb_gdf['room_type'].unique().tolist()
+colors=['#A23B72','#6CB4EE','#3D315B','#F2C641'] 
+
+for t in types:
+    subset=bnb_gdf[bnb_gdf['room_type']==t]
+    fig.add_trace(go.Scattermapbox(lon=subset['longitude'],lat=subset['latitude'], mode='markers', marker=dict(size=5, color=colors[types.index(t)]), name=t))
+fig.update_layout(title="Airbnb Listings by Room Type", legend=dict(title="Room Type"), mapbox=dict(style="open-street-map", center=dict(lat=bnb_gdf['latitude'].mean(), lon=bnb_gdf['longitude'].mean()),zoom=15))
+fig.show()
+```
+
+```{python}
+bnb_borough=gpd.sjoin(bnb_gdf, boroughs, how="inner", predicate="within")
+bnb_counts=bnb_borough.groupby("NAME").size().reset_index()
+bnb_counts=bnb_counts.rename(columns={0:"counts"})
+bnb_merge=pd.merge(boroughs, bnb_counts, on="NAME")
+f, ax=plt.subplots(figsize=(12,8))
+ax=bnb_merge.plot(ax=ax, column="counts", cmap="Greens", edgecolor="black", legend=True)
+plt.title("Airbnb Listings Distribution in Boroughs")
+plt.show()
+```
+
+```{python}
+response_rate_mean = df["host_response_rate"].dropna().mean()
+acceptance_rate_mean = df["host_acceptance_rate"].dropna().mean()
+print(f"The average acceptance rate of host in London is {acceptance_rate_mean}, and average response rate is {response_rate_mean}")
+response_time = df["host_response_time"].dropna().value_counts()
+print(f"{response_time['within an hour']}Landlord replies within an hour, {response_time['within a few hours']}landlord replies within a few hours, {response_time['within a day']}landlord replies within a day, {response_time['a few days or more']}landlord replies only after a few days or more")
+```
+
+```{python}
 property = df.property_type.value_counts()
-sorted = property.sort_values(ascending=False)
-print(sorted)
+sorted = property.sort_values(ascending=False).reset_index()
 ```
 
 ```{python}
@@ -272,3 +305,20 @@ cloud_des=WordCloud(background_color='white',max_words=120).generate_from_freque
 ax.imshow(cloud_des) 
 ax.axis("off")
 ```
+
+```{python}
+identity = df["host_identity_verified"].dropna().value_counts()
+profile = df["host_has_profile_pic"].dropna().value_counts()
+superhost = df["host_is_superhost"].dropna().value_counts()
+f, ax = plt.subplots(figsize=(8,6))
+identity.plot(position=0, ax=ax, kind="bar", color="grey", width=0.1, label='Counts of T/F Identity Verified')
+profile.plot(position=1, ax=ax, kind="bar", color="skyblue", width=0.1, label='Counts of T/F Have Profiles')
+superhost.plot(position=2, ax=ax, kind="bar", color="green", width=0.1, label='Counts of T/F Superhost')
+ax.set_ylabel("Counts")
+ax.set_xlabel("T/F Identity Verified/Have Profiles/Superhost")
+ax.set_xticklabels(['TRUE', 'FALSE'], rotation=45)
+plt.legend()
+plt.show()
+```
+
+
