@@ -100,6 +100,11 @@ print(f"Data frame is {df.shape[0]:,} x {df.shape[1]:,}")
 ```
 
 ```{python}
+unique_id = df['host_id'].dropna().unique()
+df1 = df[df["host_id"].isin(unique_id)]
+```
+
+```{python}
 ax = df.host_listings_count.plot.hist(bins=50);
 ax.set_xlim([0,500]);
 ```
@@ -263,16 +268,19 @@ plt.show()
 ```
 
 ```{python}
-response_rate_mean = df["host_response_rate"].dropna().mean()
-acceptance_rate_mean = df["host_acceptance_rate"].dropna().mean()
+response_rate_mean = df1["host_response_rate"].dropna().mean()
+acceptance_rate_mean = df1["host_acceptance_rate"].dropna().mean()
 print(f"The average acceptance rate of host in London is {acceptance_rate_mean}, and average response rate is {response_rate_mean}")
-response_time = df["host_response_time"].dropna().value_counts()
+response_time = df1["host_response_time"].dropna().value_counts()
 print(f"{response_time['within an hour']}Landlord replies within an hour, {response_time['within a few hours']}landlord replies within a few hours, {response_time['within a day']}landlord replies within a day, {response_time['a few days or more']}landlord replies only after a few days or more")
 ```
 
 ```{python}
-property = df.property_type.value_counts()
-sorted = property.sort_values(ascending=False).reset_index()
+property1 = df.property_type.value_counts()
+sorted1 = property.sort_values(ascending=False).reset_index()
+sorted_min = sorted1["counts"].min()
+sorted_min_type = sorted1[sorted1["count"]==sorted_min]['property_type']
+print(f"There is a total of {sorted1.shape[0]} property types, and {sorted1.loc[sorted1['count'].idxmax(), 'property_type']} is the most, which has {sorted1['count'].max()}, {sorted_min_type.tolist()} are the least")
 ```
 
 ```{python}
@@ -307,9 +315,28 @@ ax.axis("off")
 ```
 
 ```{python}
-identity = df["host_identity_verified"].dropna().value_counts()
-profile = df["host_has_profile_pic"].dropna().value_counts()
-superhost = df["host_is_superhost"].dropna().value_counts()
+host_about = df1.loc[:, 'host_about']
+pattern = re.compile(r'<.*?>')
+host_about_na = host_about.fillna(' ').values
+#host_about_norm = []
+#for t in host_about_na:
+    #clean_text = re.sub(pattern, ' ', t)
+    #description_norm.append(clean_text)
+tfvectorizer = TfidfVectorizer(use_idf=True, ngram_range=(1,3), max_df=0.75, min_df=0.01, stop_words='english')
+tfdescription = tfvectorizer.fit_transform(host_about_na)
+tfdif_des = pd.DataFrame(data=tfdescription.toarray(),columns=tfvectorizer.get_feature_names_out())
+tfdif_des.sum().sort_values(ascending=False)
+f,ax = plt.subplots(1,1,figsize=(8, 8))
+plt.gcf().set_dpi(200)
+cloud_des=WordCloud(background_color='white',max_words=120).generate_from_frequencies(tfdif_des.sum())
+ax.imshow(cloud_des) 
+ax.axis("off")
+```
+
+```{python}
+identity = df1["host_identity_verified"].dropna().value_counts()
+profile = df1["host_has_profile_pic"].dropna().value_counts()
+superhost = df1["host_is_superhost"].dropna().value_counts()
 f, ax = plt.subplots(figsize=(8,6))
 identity.plot(position=0, ax=ax, kind="bar", color="grey", width=0.1, label='Counts of T/F Identity Verified')
 profile.plot(position=1, ax=ax, kind="bar", color="skyblue", width=0.1, label='Counts of T/F Have Profiles')
@@ -321,4 +348,41 @@ plt.legend()
 plt.show()
 ```
 
+```{python}
+date = df1["host_since"].dropna()
+date = pd.to_datetime(date, format='mixed')
+date_df = pd.DataFrame({"dates":date})
+year = date_df['dates'].dt.year
+```
+
+```{python}
+year = date_df['dates'].dt.year
+year_counts = year.value_counts()
+year_counts_df = pd.DataFrame(year_counts).reset_index()
+year_counts_df.sort_values(by='dates', ascending=False, inplace=True)
+f, ax = plt.subplots(figsize=(8,6))
+year_counts_df.plot(kind='bar', ax=ax, x="dates", y="count", color="indigo", legend=False)
+ax.set_title("Counts of Host Years")
+plt.xticks(rotation=45)
+ax.set_xlabel('Year')
+ax.set_ylabel('Frequency')
+ax.legend()
+plt.show()
+```
+
+```{python}
+verfications_h = df1['host_verifications'].dropna().reset_index()
+print(f"Most hosts use {verifications_h.loc[verifications_h['count'].idxmax(), 'host_verifications']} as methods of verifications as high as {verifications_h['count'].max()}, least hosts use {verifications_h.loc[verifications_h['count'].idxmin(), 'host_verifications']} as ways of verification as low as {verifications_h['count'].min()}")
+```
+
+```{python}
+# only in the scraped data of inside airbnb
+host = df[["host_name", "host_id"]]
+host_counts = host.groupby("host_id").size().sort_values(ascending=False).reset_index()
+host_counts = host_counts.rename(columns={0:"count"})
+host_id = host_counts[host_counts["count"] >= 100]
+id_host = host_id["host_id"]
+host_filtered = host[host["host_id"].isin(id_host)][["host_name", "host_id"]].drop_duplicates()
+print(f"there are {host_filtered.shape[0]} whose listings are more than 100")
+```
 
