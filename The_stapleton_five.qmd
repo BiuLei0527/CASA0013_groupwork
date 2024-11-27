@@ -353,9 +353,6 @@ date = df1["host_since"].dropna()
 date = pd.to_datetime(date, format='mixed')
 date_df = pd.DataFrame({"dates":date})
 year = date_df['dates'].dt.year
-```
-
-```{python}
 year = date_df['dates'].dt.year
 year_counts = year.value_counts()
 year_counts_df = pd.DataFrame(year_counts).reset_index()
@@ -371,11 +368,6 @@ plt.show()
 ```
 
 ```{python}
-verfications_h = df1['host_verifications'].dropna().reset_index()
-print(f"Most hosts use {verifications_h.loc[verifications_h['count'].idxmax(), 'host_verifications']} as methods of verifications as high as {verifications_h['count'].max()}, least hosts use {verifications_h.loc[verifications_h['count'].idxmin(), 'host_verifications']} as ways of verification as low as {verifications_h['count'].min()}")
-```
-
-```{python}
 # only in the scraped data of inside airbnb
 host = df[["host_name", "host_id"]]
 host_counts = host.groupby("host_id").size().sort_values(ascending=False).reset_index()
@@ -383,6 +375,47 @@ host_counts = host_counts.rename(columns={0:"count"})
 host_id = host_counts[host_counts["count"] >= 100]
 id_host = host_id["host_id"]
 host_filtered = host[host["host_id"].isin(id_host)][["host_name", "host_id"]].drop_duplicates()
-print(f"there are {host_filtered.shape[0]} whose listings are more than 100")
+print(f"There are {host_filtered.shape[0]} hosts whose listings are more than 100 in Inside Airbnb Data")
+```
+
+```{python}
+verifications_h = df1['host_verifications'].dropna().value_counts().reset_index()
+verifications_h.head()
+print(f"Most hosts use {verifications_h['host_verifications'].values[0]} as methods of verifications which is as high as {verifications_h['count'].max()}, least hosts use {verifications_h.loc[verifications_h['host_verifications'].idxmin(), 'host_verifications']} as ways of verification which is as low as {verifications_h['count'].min()}")
+```
+
+```{python}
+host_counts_100=host_counts[host_counts["count"]>=100]
+host_100 = pd.merge(host_counts_100, host_filtered, on="host_id")
+f, ax= plt.subplots(figsize=(8,6))
+host_100.plot(ax=ax, kind="bar", x="host_name", y="count", color="turquoise")
+ax.set_title("Hosts Whose Listings are More Than 100")
+ax.set_xlabel("Name")
+ax.set_ylabel("Count")
+plt.show()
+total=df1["host_total_listings_count"]
+listings_total = total.value_counts().reset_index()
+print(f'Landlord with the most properties owns {int(listings_total["host_total_listings_count"].max())} properties, and there are {listings_total["count"].max()} hosts which have one listing')
+```
+
+```{python}
+df['price']=df['price'].str.replace('$','',regex=False).str.replace(',', '', regex=False).astype(float)
+price=df[df['price']<=10000]['price'].dropna()
+f,ax = plt.subplots(figsize=(8, 6))
+ax.hist(price, bins=10, edgecolor="black", color="red")
+ax.set_xlabel("Price")
+ax.set_ylabel("Frequency")
+ax.set_title("Price Distribution")
+plt.show()
+```
+
+```{python}
+price=df[df['price']<=6000]['price'].dropna()
+f,ax = plt.subplots(figsize=(8, 6))
+ax.hist(price, bins=30, edgecolor="black", color="red")
+ax.set_xlabel("Price")
+ax.set_ylabel("Frequency")
+ax.set_title("Price Distribution")
+plt.show()
 ```
 
