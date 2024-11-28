@@ -56,6 +56,33 @@ import seaborn as sns
 import geopandas as gpd
 import requests
 from requests import get
+from urllib.parse import urlparse
+from functools import wraps
+```
+
+```{python}
+def cache_che(func):
+    @wraps(func)
+    def wrapper(url_p, dest):
+        url=urlparse(url_p)
+        file_name=os.path.split(url.path)[-1]
+        dest_name=os.path.join(dest, file_name)
+        if os.path.isfile(dest_name):
+            print(f'{dest_name} have been found locally')
+            return(dest_name)
+        else:
+            print(f'{dest_name} isn\'t here, it is downlowded now')
+            return(func(url_p, dest_name))
+    return wrapper
+@cache_che
+def data_cache(url_p:str, dest:str) -> str:
+    path = os.path.split(dest)[0]
+    if path != '':
+        os.makedirs(path, exist_ok=True)
+    with open(dest, "wb") as file: 
+        response = get(url_p)
+        file.write(response.content) 
+    return dest
 ```
 
 ```{python}
@@ -204,29 +231,18 @@ Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used
 Firstly, an analysis of the types of Airbnb listings in London is presented in order to summarise their main characteristics.
 
 ```{python}
-listings_type = df.loc[:, ['room_type','latitude', 'longitude']]
-counts = listings_type['room_type'].value_counts().to_dict()
-orders = ['Entire home/apt', 'Private room', 'Shared room', 'Hotel room']
-plt.figure(figsize=(8,6))
-ax=sns.countplot(data=listings_type, x='room_type', order=orders, palette="deep")
-for c in ax.containers:
-    labels = [counts[l] for l in counts.keys()]
-    ax.bar_label(c, label=labels, fontsize=10)
-plt.title('Counts of Different Room Type in London')
-plt.show()
-```
-
-```{python}
-gdf_bnb = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude, crs='epsg:4326'))
+#read geo data frame 
 url = 'https://github.com/jreades/i2p/blob/master/data/src/Boroughs.gpkg?raw=true'
 file_name='Boroughs.gpkg'
-response=requests.get(url)
-with open (file_name, 'wb') as file:
-    file.write(response.content)
-boroughs=gpd.read_file(file_name)
+with open(file_name, "wb") as file: 
+    response = get(url)
+    file.write(response.content) 
+boroughs = gpd.read_file(file_name)
 ```
 
 ```{python}
+#plot distribution of different room types in London
+gdf_bnb = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude, crs='epsg:4326'))
 bnb_gdf = gdf_bnb.to_crs(boroughs.crs)
 fig, ax=plt.subplots(figsize=(12, 8))
 boroughs.plot(ax=ax, facecolor='lightgrey', edgecolor='black', alpha=0.7)
@@ -242,22 +258,9 @@ plt.show()
 ```
 
 ```{python}
-import plotly.graph_objects as go
-boroughs_json=boroughs.__geo_interface__
-fig = go.Figure()
-fig.add_trace(go.Choroplethmapbox(geojson=boroughs_json, locations=boroughs['NAME'], colorscale="Cividis", marker=dict(opacity=0.75), showscale=False))
-types=bnb_gdf['room_type'].unique().tolist()
-colors=['#A23B72','#6CB4EE','#3D315B','#F2C641'] 
-
-for t in types:
-    subset=bnb_gdf[bnb_gdf['room_type']==t]
-    fig.add_trace(go.Scattermapbox(lon=subset['longitude'],lat=subset['latitude'], mode='markers', marker=dict(size=5, color=colors[types.index(t)]), name=t))
-fig.update_layout(title="Airbnb Listings by Room Type", legend=dict(title="Room Type"), mapbox=dict(style="open-street-map", center=dict(lat=bnb_gdf['latitude'].mean(), lon=bnb_gdf['longitude'].mean()),zoom=15))
-fig.show()
-```
-
-```{python}
+# Distribution of listings by boroughs
 bnb_borough=gpd.sjoin(bnb_gdf, boroughs, how="inner", predicate="within")
+bnb_borough.drop(index=bnb_borough[bnb_borough.NAME.isna()].index, axis=1, inplace=True)
 bnb_counts=bnb_borough.groupby("NAME").size().reset_index()
 bnb_counts=bnb_counts.rename(columns={0:"counts"})
 bnb_merge=pd.merge(boroughs, bnb_counts, on="NAME")
@@ -268,22 +271,35 @@ plt.show()
 ```
 
 ```{python}
-response_rate_mean = df1["host_response_rate"].dropna().mean()
-acceptance_rate_mean = df1["host_acceptance_rate"].dropna().mean()
-print(f"The average acceptance rate of host in London is {acceptance_rate_mean}, and average response rate is {response_rate_mean}")
-response_time = df1["host_response_time"].dropna().value_counts()
-print(f"{response_time['within an hour']}Landlord replies within an hour, {response_time['within a few hours']}landlord replies within a few hours, {response_time['within a day']}landlord replies within a day, {response_time['a few days or more']}landlord replies only after a few days or more")
+listings_type = df.loc[:, ['room_type','latitude', 'longitude']]
+counts = listings_type['room_type'].value_counts().to_dict()
+orders = ['Entire home/apt', 'Private room', 'Shared room', 'Hotel room']
+plt.figure(figsize=(8,6))
+ax=sns.countplot(data=listings_type, x='room_type', order=orders, palette="deep")
+for c in ax.containers:
+    labels = [counts[l] for l in counts.keys()]
+    ax.bar_label(c, label=labels, fontsize=10)
+plt.title('Counts of Different Room Type in London')
+plt.show()
 ```
 
 ```{python}
-property1 = df.property_type.value_counts()
-sorted1 = property.sort_values(ascending=False).reset_index()
-sorted_min = sorted1["counts"].min()
-sorted_min_type = sorted1[sorted1["count"]==sorted_min]['property_type']
-print(f"There is a total of {sorted1.shape[0]} property types, and {sorted1.loc[sorted1['count'].idxmax(), 'property_type']} is the most, which has {sorted1['count'].max()}, {sorted_min_type.tolist()} are the least")
+#interactive map from plotly
+import plotly.graph_objects as go
+boroughs_json=boroughs.__geo_interface__
+fig = go.Figure()
+fig.add_trace(go.Choroplethmapbox(geojson=boroughs_json, locations=boroughs['NAME'], colorscale="Cividis", marker=dict(opacity=0.75), showscale=False))
+types=bnb_gdf['room_type'].unique().tolist()
+colors=['#A23B72','#6CB4EE','#3D315B','#F2C641'] 
+for t in types:
+    subset=bnb_gdf[bnb_gdf['room_type']==t]
+    fig.add_trace(go.Scattermapbox(lon=subset['longitude'],lat=subset['latitude'], mode='markers', marker=dict(size=5, color=colors[types.index(t)]), name=t))
+fig.update_layout(title="Airbnb Listings by Room Type", legend=dict(title="Room Type"), mapbox=dict(style="open-street-map", center=dict(lat=bnb_gdf['latitude'].mean(), lon=bnb_gdf['longitude'].mean()),zoom=15))
+fig.show()
 ```
 
 ```{python}
+#word cloud
 import nltk
 import re
 from nltk.tokenize import word_tokenize, sent_tokenize 
@@ -296,6 +312,7 @@ from wordcloud import WordCloud
 ```
 
 ```{python}
+#word cloud about description of listings
 description = df.loc[:, 'description']
 pattern = re.compile(r'<.*?>')
 description_na = description.fillna(' ').values
@@ -315,13 +332,10 @@ ax.axis("off")
 ```
 
 ```{python}
+#word cloud about host info
 host_about = df1.loc[:, 'host_about']
 pattern = re.compile(r'<.*?>')
 host_about_na = host_about.fillna(' ').values
-#host_about_norm = []
-#for t in host_about_na:
-    #clean_text = re.sub(pattern, ' ', t)
-    #description_norm.append(clean_text)
 tfvectorizer = TfidfVectorizer(use_idf=True, ngram_range=(1,3), max_df=0.75, min_df=0.01, stop_words='english')
 tfdescription = tfvectorizer.fit_transform(host_about_na)
 tfdif_des = pd.DataFrame(data=tfdescription.toarray(),columns=tfvectorizer.get_feature_names_out())
@@ -333,7 +347,32 @@ ax.imshow(cloud_des)
 ax.axis("off")
 ```
 
+
+
 ```{python}
+property1 = df.property_type.value_counts()
+sorted1 = property1.sort_values(ascending=False).reset_index()
+sorted_min = sorted1["count"].min()
+sorted_min_type = sorted1[sorted1["count"]==sorted_min]['property_type']
+print(f"There is a total of {sorted1.shape[0]} property types, and {sorted1.loc[sorted1['count'].idxmax(), 'property_type']} is the most, which has {sorted1['count'].max()}, {sorted_min_type.tolist()} are the least")
+```
+
+```{python}
+df1["host_response_rate"] = df1["host_response_rate"].str.replace('%', '').astype(float) / 100
+df1["host_acceptance_rate"] = df1["host_acceptance_rate"].str.replace('%', '').astype(float) / 100
+```
+
+
+```{python}
+response_rate_mean = df1["host_response_rate"].dropna().mean()
+acceptance_rate_mean = df1["host_acceptance_rate"].dropna().mean()
+print(f"The average acceptance rate of host in London is {acceptance_rate_mean}, and average response rate is {response_rate_mean}")
+response_time = df1["host_response_time"].dropna().value_counts()
+print(f"{response_time['within an hour']} Landlord replies within an hour, {response_time['within a few hours']} landlord replies within a few hours, {response_time['within a day']} landlord replies within a day, {response_time['a few days or more']} landlord replies only after a few days or more")
+```
+
+```{python}
+#three aspects about whether hosts have profiles and whether they are superhosts, and whether their identities are verified
 identity = df1["host_identity_verified"].dropna().value_counts()
 profile = df1["host_has_profile_pic"].dropna().value_counts()
 superhost = df1["host_is_superhost"].dropna().value_counts()
@@ -349,6 +388,7 @@ plt.show()
 ```
 
 ```{python}
+#the date when the host publish his listing
 date = df1["host_since"].dropna()
 date = pd.to_datetime(date, format='mixed')
 date_df = pd.DataFrame({"dates":date})
@@ -368,7 +408,8 @@ plt.show()
 ```
 
 ```{python}
-# only in the scraped data of inside airbnb
+# counts of whose listings are more than 100 in inside airbnb data
+# only in the scraped data of inside airbnb 
 host = df[["host_name", "host_id"]]
 host_counts = host.groupby("host_id").size().sort_values(ascending=False).reset_index()
 host_counts = host_counts.rename(columns={0:"count"})
@@ -376,6 +417,17 @@ host_id = host_counts[host_counts["count"] >= 100]
 id_host = host_id["host_id"]
 host_filtered = host[host["host_id"].isin(id_host)][["host_name", "host_id"]].drop_duplicates()
 print(f"There are {host_filtered.shape[0]} hosts whose listings are more than 100 in Inside Airbnb Data")
+total=df1["host_total_listings_count"]
+listings_total = total.value_counts().reset_index()
+print(f'Landlord with the most properties owns {int(listings_total["host_total_listings_count"].max())} properties, and there are {listings_total["count"].max()} hosts which have one listing')
+host_counts_100=host_counts[host_counts["count"]>=100]
+host_100 = pd.merge(host_counts_100, host_filtered, on="host_id")
+f, ax= plt.subplots(figsize=(8,6))
+host_100.plot(ax=ax, kind="bar", x="host_name", y="count", color="turquoise")
+ax.set_title("Hosts Whose Listings are More Than 100")
+ax.set_xlabel("Name")
+ax.set_ylabel("Count")
+plt.show()
 ```
 
 ```{python}
@@ -385,37 +437,78 @@ print(f"Most hosts use {verifications_h['host_verifications'].values[0]} as meth
 ```
 
 ```{python}
-host_counts_100=host_counts[host_counts["count"]>=100]
-host_100 = pd.merge(host_counts_100, host_filtered, on="host_id")
-f, ax= plt.subplots(figsize=(8,6))
-host_100.plot(ax=ax, kind="bar", x="host_name", y="count", color="turquoise")
-ax.set_title("Hosts Whose Listings are More Than 100")
-ax.set_xlabel("Name")
-ax.set_ylabel("Count")
-plt.show()
-total=df1["host_total_listings_count"]
-listings_total = total.value_counts().reset_index()
-print(f'Landlord with the most properties owns {int(listings_total["host_total_listings_count"].max())} properties, and there are {listings_total["count"].max()} hosts which have one listing')
+max_night = df[df['maximum_nights']<2000]['maximum_nights'].value_counts().reset_index()
+max_night.head()
+print(f'The most frequent number of maximum nights in these listings is {max_night["maximum_nights"][0]}, which is as high as {max_night["count"].max()}')
 ```
 
 ```{python}
-df['price']=df['price'].str.replace('$','',regex=False).str.replace(',', '', regex=False).astype(float)
-price=df[df['price']<=10000]['price'].dropna()
-f,ax = plt.subplots(figsize=(8, 6))
-ax.hist(price, bins=10, edgecolor="black", color="red")
-ax.set_xlabel("Price")
-ax.set_ylabel("Frequency")
-ax.set_title("Price Distribution")
-plt.show()
+#replace $ with blankspace
+df['price']=df['price'].str.replace('$','',regex=False).str.replace(',', '', regex=False).astype(float) #convert price into float
 ```
 
 ```{python}
-price=df[df['price']<=6000]['price'].dropna()
+#plot distribution of price below 2000
+price=df[df['price']<=2000]['price'].dropna()
 f,ax = plt.subplots(figsize=(8, 6))
 ax.hist(price, bins=30, edgecolor="black", color="red")
 ax.set_xlabel("Price")
 ax.set_ylabel("Frequency")
 ax.set_title("Price Distribution")
 plt.show()
+```
+
+
+```{python}
+#group by 'property_type','room_type' from practical 9
+agg_df = df[(df['price']<=2000) & (df['number_of_reviews']>0)][['price', 'property_type','room_type','number_of_reviews']]
+agg = agg_df.groupby(by=['property_type','room_type']).agg(counts = ("property_type", "count"), median_price = ("price", "median")).reset_index().sort_values(by=['counts','room_type','property_type'], ascending=[False,True,True])
+agg.head(20)
+```
+
+
+
+```{python}
+# Unless planning permission is obtained, Londoners are restricted to renting their property short term for a maximum of 90 nights in a calendar year.
+# from https://www.london.gov.uk/programmes-strategies/housing-and-land/improving-private-rented-sector/guidance-short-term-and-holiday-lets-london
+# Next is STL-related analysis
+bnb_stl = bnb_gdf[bnb_gdf['maximum_nights']<=90][['price', 'room_type', 'property_type', 'maximum_nights', 'geometry']]
+stl_borough=gpd.sjoin(bnb_stl, boroughs, how="inner", predicate="within")
+stl_counts=stl_borough.groupby("NAME").size().reset_index()
+stl_counts=stl_counts.rename(columns={0:"counts"})
+stl_merge=pd.merge(boroughs, stl_counts, on="NAME")
+f, ax=plt.subplots(figsize=(12,8))
+ax=stl_merge.plot(ax=ax, column="counts", cmap="viridis", edgecolor="black", legend=True)
+plt.title("Airbnb STL Listings Distribution in Boroughs")
+plt.show()
+```
+
+```{python}
+stl = df[df['maximum_nights']<=90][['price', 'room_type', 'property_type', 'maximum_nights']]
+stl_agg = stl.groupby(by=['property_type','room_type']).agg(counts = ("property_type", "count"), mean_price = ("price", "mean")).reset_index().sort_values(by=['counts','room_type','property_type'], ascending=[False,True,True])
+stl_agg.head()
+```
+
+
+```{python}
+stl_ptype = stl['room_type'].value_counts()
+stl_ptype.head()
+```
+
+```{python}
+stl_price = stl[stl['price']<=1000]['price']
+f,ax = plt.subplots(figsize=(8, 6))
+ax.hist(stl_price, bins=20, edgecolor="black", color="red")
+ax.set_xlabel("Price")
+ax.set_ylabel("Frequency")
+ax.set_title("Price Distribution")
+plt.show()
+```
+
+```{python}
+stl_sh = df[df['maximum_nights']<=90][['host_is_superhost', 'host_total_listings_count']]
+stl_sh_count = stl_sh.groupby('host_is_superhost').agg(count_sh=('host_is_superhost', 'count'), mean_count=('host_total_listings_count', 'mean')).reset_index()
+print(stl_sh_count.head())
+print(f'There are a total of listings of {stl.shape[0]} STL listings in London')
 ```
 
