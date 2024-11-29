@@ -347,8 +347,6 @@ ax.imshow(cloud_des)
 ax.axis("off")
 ```
 
-
-
 ```{python}
 property1 = df.property_type.value_counts()
 sorted1 = property1.sort_values(ascending=False).reset_index()
@@ -361,7 +359,6 @@ print(f"There is a total of {sorted1.shape[0]} property types, and {sorted1.loc[
 df1["host_response_rate"] = df1["host_response_rate"].str.replace('%', '').astype(float) / 100
 df1["host_acceptance_rate"] = df1["host_acceptance_rate"].str.replace('%', '').astype(float) / 100
 ```
-
 
 ```{python}
 response_rate_mean = df1["host_response_rate"].dropna().mean()
@@ -458,15 +455,12 @@ ax.set_title("Price Distribution")
 plt.show()
 ```
 
-
 ```{python}
 #group by 'property_type','room_type' from practical 9
 agg_df = df[(df['price']<=2000) & (df['number_of_reviews']>0)][['price', 'property_type','room_type','number_of_reviews']]
 agg = agg_df.groupby(by=['property_type','room_type']).agg(counts = ("property_type", "count"), median_price = ("price", "median")).reset_index().sort_values(by=['counts','room_type','property_type'], ascending=[False,True,True])
 agg.head(20)
 ```
-
-
 
 ```{python}
 # Unless planning permission is obtained, Londoners are restricted to renting their property short term for a maximum of 90 nights in a calendar year.
@@ -489,10 +483,17 @@ stl_agg = stl.groupby(by=['property_type','room_type']).agg(counts = ("property_
 stl_agg.head()
 ```
 
-
 ```{python}
-stl_ptype = stl['room_type'].value_counts()
-stl_ptype.head()
+stl_rtype = stl['room_type'].value_counts()
+stl_rtype.head()
+stl_ptype = stl['property_type'].value_counts().reset_index()
+stl_ptype_7 = stl_ptype[:7]
+other_types = pd.DataFrame({"property_type":['Others'], "count":[stl_ptype['count'][7:].sum()]})
+stl_ptype2 = pd.concat([stl_ptype_7, other_types], ignore_index=True)
+plt.figure(figsize=(8,6))
+plt.pie(stl_ptype2['count'], labels=stl_ptype2['property_type'], autopct='%1.1f%%', startangle=90)
+plt.title("STL Property Type Pie Chart")
+plt.show()
 ```
 
 ```{python}
@@ -511,4 +512,3 @@ stl_sh_count = stl_sh.groupby('host_is_superhost').agg(count_sh=('host_is_superh
 print(stl_sh_count.head())
 print(f'There are a total of listings of {stl.shape[0]} STL listings in London')
 ```
-
