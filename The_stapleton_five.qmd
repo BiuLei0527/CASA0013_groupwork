@@ -246,6 +246,8 @@ boroughs = gpd.read_file(file_name)
 path = 'https://github.com/jreades/fsds/blob/master/data/src/' 
 dest = 'Data'
 boroughs = gpd.read_file(data_cache(path+'Boroughs.gpkg?raw=true', dest))
+gdf_bnb = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude, crs='epsg:4326'))
+bnb_gdf = gdf_bnb.to_crs(boroughs.crs)
 ```
 
 ```{python}
@@ -476,7 +478,6 @@ agg = agg_df.groupby(by=['property_type','room_type']).agg(counts = ("property_t
 agg.head(20)
 ```
 
-
 ```{python}
 # Unless planning permission is obtained, Londoners are restricted to renting their property short term for a maximum of 90 nights in a calendar year.
 # from https://www.london.gov.uk/programmes-strategies/housing-and-land/improving-private-rented-sector/guidance-short-term-and-holiday-lets-london
@@ -528,7 +529,6 @@ handle = show(p2, notebook_handle=True)
 push_notebook(handle=handle)
 output_notebook() 
 ```
-
 
 ```{python}
 stl_merge1.head()
