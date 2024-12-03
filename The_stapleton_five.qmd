@@ -275,7 +275,7 @@ listings_type = df.loc[:, ['room_type','latitude', 'longitude']]
 counts = listings_type['room_type'].value_counts().to_dict()
 orders = ['Entire home/apt', 'Private room', 'Shared room', 'Hotel room']
 plt.figure(figsize=(8,6))
-ax=sns.countplot(data=listings_type, x='room_type', order=orders, palette="deep")
+ax=sns.countplot(data=listings_type, x='room_type', palette="dark", hue=listings_type['room_type'])
 for c in ax.containers:
     labels = [counts[l] for l in counts.keys()]
     ax.bar_label(c, label=labels, fontsize=10)
