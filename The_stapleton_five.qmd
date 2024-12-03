@@ -61,6 +61,7 @@ from functools import wraps
 ```
 
 ```{python}
+#Refer to Practical 10 "https://jreades.github.io/fsds/practicals/Practical-10-Presenting_Data.html"
 def cache_che(func):
     @wraps(func)
     def wrapper(url_p, dest):
@@ -231,7 +232,7 @@ Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used
 Firstly, an analysis of the types of Airbnb listings in London is presented in order to summarise their main characteristics.
 
 ```{python}
-#read geo data frame 
+#use request-url to read boro
 url = 'https://github.com/jreades/i2p/blob/master/data/src/Boroughs.gpkg?raw=true'
 file_name='Boroughs.gpkg'
 with open(file_name, "wb") as file: 
@@ -241,50 +242,19 @@ boroughs = gpd.read_file(file_name)
 ```
 
 ```{python}
+#use function to read boros 
+path = 'https://github.com/jreades/fsds/blob/master/data/src/' 
+dest = 'Data'
+boroughs = gpd.read_file(data_cache(path+'Boroughs.gpkg?raw=true', dest))
+```
+
+```{python}
+#replace $ with blankspace
+df['price']=df['price'].str.replace('$','',regex=False).str.replace(',', '', regex=False).astype(float) #convert price into float
+```
+
+```{python}
 #plot distribution of different room types in London
-gdf_bnb = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude, crs='epsg:4326'))
-bnb_gdf = gdf_bnb.to_crs(boroughs.crs)
-fig, ax=plt.subplots(figsize=(12, 8))
-boroughs.plot(ax=ax, facecolor='lightgrey', edgecolor='black', alpha=0.7)
-types=bnb_gdf['room_type'].unique().tolist()
-colors=['#A23B72','#6CB4EE','#3D315B','#F2C641'] 
-markers=['*','s','^','+']
-for t in types:
-    subset=bnb_gdf[bnb_gdf['room_type']==t]
-    subset.plot(ax=ax, markersize=2, color=colors[types.index(t)], label=t, marker=markers[types.index(t)])
-ax.legend(title='Room Type', markerscale=5)
-ax.set_title("Airbnb Listings by Room Type")
-plt.show()
-```
-
-```{python}
-# Distribution of listings by boroughs
-bnb_borough=gpd.sjoin(bnb_gdf, boroughs, how="inner", predicate="within")
-bnb_borough.drop(index=bnb_borough[bnb_borough.NAME.isna()].index, axis=1, inplace=True)
-bnb_counts=bnb_borough.groupby("NAME").size().reset_index()
-bnb_counts=bnb_counts.rename(columns={0:"counts"})
-bnb_merge=pd.merge(boroughs, bnb_counts, on="NAME")
-f, ax=plt.subplots(figsize=(12,8))
-ax=bnb_merge.plot(ax=ax, column="counts", cmap="Greens", edgecolor="black", legend=True)
-plt.title("Airbnb Listings Distribution in Boroughs")
-plt.show()
-```
-
-```{python}
-listings_type = df.loc[:, ['room_type','latitude', 'longitude']]
-counts = listings_type['room_type'].value_counts().to_dict()
-orders = ['Entire home/apt', 'Private room', 'Shared room', 'Hotel room']
-plt.figure(figsize=(8,6))
-ax=sns.countplot(data=listings_type, x='room_type', palette="dark", hue=listings_type['room_type'])
-for c in ax.containers:
-    labels = [counts[l] for l in counts.keys()]
-    ax.bar_label(c, label=labels, fontsize=10)
-plt.title('Counts of Different Room Type in London')
-plt.show()
-```
-
-```{python}
-#interactive map from plotly
 import plotly.graph_objects as go
 boroughs_json=boroughs.__geo_interface__
 fig = go.Figure()
@@ -296,6 +266,69 @@ for t in types:
     fig.add_trace(go.Scattermapbox(lon=subset['longitude'],lat=subset['latitude'], mode='markers', marker=dict(size=5, color=colors[types.index(t)]), name=t))
 fig.update_layout(title="Airbnb Listings by Room Type", legend=dict(title="Room Type"), mapbox=dict(style="open-street-map", center=dict(lat=bnb_gdf['latitude'].mean(), lon=bnb_gdf['longitude'].mean()),zoom=15))
 fig.show()
+```
+
+```{python}
+# Distribution of listings by boroughs and its median price
+bnb_borough=gpd.sjoin(bnb_gdf, boroughs, how="inner", predicate="within")
+bnb_borough.drop(index=bnb_borough[bnb_borough.NAME.isna()].index, axis=1, inplace=True)
+bnb_counts_price=bnb_borough.groupby("NAME").agg(count=('NAME', 'count'), median=('price', 'median')).reset_index()
+bnb_merge=pd.merge(boroughs, bnb_counts_price, on="NAME")
+f, ax=plt.subplots(1,2,gridspec_kw={'width_ratios':[6,6]}, figsize=(12,8))
+bnb_merge.plot(ax=ax[0],column='median',legend=True,cmap='plasma')
+ax[0].set_title("Median Price", size=18)
+bnb_merge.plot(ax=ax[1],column='count',legend=True,cmap='viridis')
+ax[1].set_title("Count", size=18)
+for x in ax:
+    x.set_xticks([]) 
+    x.set_yticks([])
+    x.set_facecolor((0.8, 0.9, 1, 1))
+    x.spines['left'].set_visible(False)
+    x.spines['right'].set_visible(False)
+    x.spines['top'].set_visible(False)
+    x.spines['bottom'].set_visible(False)
+    x.grid(which='major', visible=True, axis='both', color='lightgrey', linestyle='-', linewidth=0.5, zorder=0)
+    x.set_axisbelow(True)
+f.suptitle('Distribution of Listings and its Price by Boroughs', x=0.025, ha='left', size=22)
+plt.figtext(x=0.025, y=0.88, s=f"Total listings: {bnb_merge['count'].sum()}", size=14)
+```
+
+```{python}
+#room type with counts, reviews and price
+from bokeh.plotting import figure 
+from bokeh.io import output_notebook, show 
+from bokeh.models import ColumnDataSource, HoverTool 
+from bokeh.palettes import Spectral4 
+output_notebook()
+listings_type = df.loc[:, ['room_type','latitude', 'longitude','number_of_reviews','price']]
+listings = listings_type.groupby('room_type').agg(count=('room_type', 'count'), mean=('number_of_reviews', 'mean'), price=('price', 'median')).reset_index()
+room_types = listings['room_type'].to_list()
+reviews = listings['mean'].to_list()
+room_counts = listings['count'].to_list()
+prices = listings['price'].to_list()
+source = ColumnDataSource(data=dict(types=room_types, counts=room_counts, reviews=reviews, price=prices))
+tool_tips = [("Room Type", "@types"), ("Number of Listings", "@counts{,}"),("Mean of Reviews", "@reviews{,}"), ("Median Price", "$@price{,}/night")]# ‘,’ represent thousandth
+p1 = figure(x_range=room_types, height=300, tooltips=tool_tips, title=f"Mean Reviews and Median Price by Room Type in London", toolbar_location=None, tools="") 
+p1.vbar(x='types', top='counts', width=0.9, source=source) 
+#p.xgrid.grid_line_color = None
+p1.y_range.start = 0
+p1.xaxis.axis_label = "Room Type"
+p1.yaxis.axis_label = "Number of Listings"
+p1.title.text_font_size = '18pt'
+show(p1)
+```
+
+```{python}
+listings_type = df.loc[:, ['room_type','latitude', 'longitude','number_of_reviews']]
+counts = listings_type['room_type'].value_counts().to_dict()
+orders = ['Entire home/apt', 'Private room', 'Shared room', 'Hotel room']
+plt.figure(figsize=(8,6))
+ax=sns.countplot(data=listings_type, x='room_type', palette="dark", hue=listings_type['room_type'])
+for c in ax.containers:
+    labels = [counts[l] for l in counts.keys()]
+    ax.bar_label(c, label=labels, fontsize=10)
+plt.title('Counts of Different Room Type in London')
+plt.show()
 ```
 
 ```{python}
@@ -358,9 +391,6 @@ print(f"There is a total of {sorted1.shape[0]} property types, and {sorted1.loc[
 ```{python}
 df1["host_response_rate"] = df1["host_response_rate"].str.replace('%', '').astype(float) / 100
 df1["host_acceptance_rate"] = df1["host_acceptance_rate"].str.replace('%', '').astype(float) / 100
-```
-
-```{python}
 response_rate_mean = df1["host_response_rate"].dropna().mean()
 acceptance_rate_mean = df1["host_acceptance_rate"].dropna().mean()
 print(f"The average acceptance rate of host in London is {acceptance_rate_mean}, and average response rate is {response_rate_mean}")
@@ -440,27 +470,12 @@ print(f'The most frequent number of maximum nights in these listings is {max_nig
 ```
 
 ```{python}
-#replace $ with blankspace
-df['price']=df['price'].str.replace('$','',regex=False).str.replace(',', '', regex=False).astype(float) #convert price into float
-```
-
-```{python}
-#plot distribution of price below 2000
-price=df[df['price']<=2000]['price'].dropna()
-f,ax = plt.subplots(figsize=(8, 6))
-ax.hist(price, bins=30, edgecolor="black", color="red")
-ax.set_xlabel("Price")
-ax.set_ylabel("Frequency")
-ax.set_title("Price Distribution")
-plt.show()
-```
-
-```{python}
 #group by 'property_type','room_type' from practical 9
 agg_df = df[(df['price']<=2000) & (df['number_of_reviews']>0)][['price', 'property_type','room_type','number_of_reviews']]
 agg = agg_df.groupby(by=['property_type','room_type']).agg(counts = ("property_type", "count"), median_price = ("price", "median")).reset_index().sort_values(by=['counts','room_type','property_type'], ascending=[False,True,True])
 agg.head(20)
 ```
+
 
 ```{python}
 # Unless planning permission is obtained, Londoners are restricted to renting their property short term for a maximum of 90 nights in a calendar year.
@@ -475,6 +490,52 @@ f, ax=plt.subplots(figsize=(12,8))
 ax=stl_merge.plot(ax=ax, column="counts", cmap="viridis", edgecolor="black", legend=True)
 plt.title("Airbnb STL Listings Distribution in Boroughs")
 plt.show()
+```
+
+```{python}
+from bokeh.plotting import figure
+from bokeh.io import output_file, show, output_notebook, push_notebook, export_png 
+from bokeh.models import ColumnDataSource, GeoJSONDataSource, LinearColorMapper, ColorBar, HoverTool
+from bokeh.palettes import brewer
+import json
+bnb_stl = bnb_gdf[bnb_gdf['maximum_nights']<=90][['price', 'room_type', 'property_type', 'maximum_nights', 'geometry']]
+stl_borough = gpd.sjoin(bnb_stl, boroughs, how="inner", predicate="within")
+stl_counts = stl_borough.groupby("NAME").agg(count=('NAME', 'count'), maximum=('maximum_nights', lambda x: x.mode()[0]), price=('price', 'median')).reset_index()
+stl_merge1 =pd.merge(boroughs, stl_counts, on="NAME")
+
+def get_geodata(gdf):    
+    json_data = json.dumps(json.loads(gdf.to_json()))
+    return GeoJSONDataSource(geojson = json_data)
+stlgeo = stl_merge1.to_crs('epsg:3785')
+column = 'count'
+geo_source = get_geodata(stlgeo)
+palette=brewer['YlGnBu'][8]
+cols = stlgeo[column]
+color_mapper = LinearColorMapper(palette=palette, low=cols.min(), high=cols.max()) 
+color_bar = ColorBar(color_mapper=color_mapper, label_standoff=10, width=500, height=8, location=(0,0), orientation='horizontal')
+tools = 'wheel_zoom,pan,reset,hover'
+p2 = figure(title = "Borough-level STL Listings", height=700, width=850, toolbar_location='right', tools=tools) 
+p2.add_tile("CartoDB Positron", retina=True)  
+p2.xgrid.grid_line_color = None 
+p2.ygrid.grid_line_color = None
+p2.patches('xs','ys', source=geo_source, fill_alpha=0.5, line_width=0.5, line_color='white', fill_color={'field' :column , 'transform': color_mapper}) 
+p2.add_layout(color_bar, 'below') 
+hover = HoverTool()
+hover.point_policy = "follow_mouse" 
+hover.tooltips = [("Borough", "@NAME"), ("Maximum Nights", "@maximum"), ("Count of Listings", "@count"), ("Median Price", "$@price")]
+p2.add_tools(hover)
+handle = show(p2, notebook_handle=True)
+push_notebook(handle=handle)
+output_notebook() 
+```
+
+
+```{python}
+stl_merge1.head()
+hover = HoverTool()
+hover.point_policy = "follow_mouse" 
+hover.tooltips = [("Borough", "@NAME"), ("Maximum Nights", "@maximum"), ("Count of Listings", "@count"), ("Median Price", "$@price")]
+p2.add_tools(hover)
 ```
 
 ```{python}
