@@ -58,6 +58,7 @@ import requests
 from requests import get
 from urllib.parse import urlparse
 from functools import wraps
+import matplotlib
 ```
 
 ```{python}
@@ -130,11 +131,6 @@ print(f"Data frame is {df.shape[0]:,} x {df.shape[1]:,}")
 ```{python}
 unique_id = df['host_id'].dropna().unique()
 df1 = df[df["host_id"].isin(unique_id)]
-```
-
-```{python}
-ax = df.host_listings_count.plot.hist(bins=50);
-ax.set_xlim([0,500]);
 ```
 
 ## 3. How was the InsideAirbnb data collected?  
@@ -220,16 +216,10 @@ Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used
 
 ## References
 
-
-## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and Listing types suggest about the nature of Airbnb lets in London? 
-
-::: {.duedate}
-
-( 15 points; Answer due {{< var assess.group-date >}} )
-
-:::
-
-Firstly, an analysis of the types of Airbnb listings in London is presented in order to summarise their main characteristics.
+```{python}
+#replace $ with blankspace
+df['price']=df['price'].str.replace('$','',regex=False).str.replace(',', '', regex=False).astype(float) #convert price into float
+```
 
 ```{python}
 #use request-url to read boro
@@ -248,11 +238,6 @@ dest = 'Data'
 boroughs = gpd.read_file(data_cache(path+'Boroughs.gpkg?raw=true', dest))
 gdf_bnb = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude, crs='epsg:4326'))
 bnb_gdf = gdf_bnb.to_crs(boroughs.crs)
-```
-
-```{python}
-#replace $ with blankspace
-df['price']=df['price'].str.replace('$','',regex=False).str.replace(',', '', regex=False).astype(float) #convert price into float
 ```
 
 ```{python}
@@ -406,9 +391,9 @@ identity = df1["host_identity_verified"].dropna().value_counts()
 profile = df1["host_has_profile_pic"].dropna().value_counts()
 superhost = df1["host_is_superhost"].dropna().value_counts()
 f, ax = plt.subplots(figsize=(8,6))
-identity.plot(position=0, ax=ax, kind="bar", color="grey", width=0.1, label='Counts of T/F Identity Verified')
-profile.plot(position=1, ax=ax, kind="bar", color="skyblue", width=0.1, label='Counts of T/F Have Profiles')
-superhost.plot(position=2, ax=ax, kind="bar", color="green", width=0.1, label='Counts of T/F Superhost')
+bars1 = identity.plot(position=0, ax=ax, kind="bar", color="grey", width=0.1, label='Counts of T/F Identity Verified')
+bars2 = profile.plot(position=1, ax=ax, kind="bar", color="skyblue", width=0.1, label='Counts of T/F Have Profiles')
+bars3 = superhost.plot(position=2, ax=ax, kind="bar", color="green", width=0.1, label='Counts of T/F Superhost')
 ax.set_ylabel("Counts")
 ax.set_xlabel("T/F Identity Verified/Have Profiles/Superhost")
 ax.set_xticklabels(['TRUE', 'FALSE'], rotation=45)
@@ -478,11 +463,12 @@ agg = agg_df.groupby(by=['property_type','room_type']).agg(counts = ("property_t
 agg.head(20)
 ```
 
+
 ```{python}
 # Unless planning permission is obtained, Londoners are restricted to renting their property short term for a maximum of 90 nights in a calendar year.
 # from https://www.london.gov.uk/programmes-strategies/housing-and-land/improving-private-rented-sector/guidance-short-term-and-holiday-lets-london
 # Next is STL-related analysis
-bnb_stl = bnb_gdf[bnb_gdf['maximum_nights']<=90][['price', 'room_type', 'property_type', 'maximum_nights', 'geometry']]
+bnb_stl = bnb_gdf[bnb_gdf['maximum_nights']<=90][['price', 'room_type', 'property_type', 'maximum_nights', 'geometry', 'number_of_reviews']]
 stl_borough=gpd.sjoin(bnb_stl, boroughs, how="inner", predicate="within")
 stl_counts=stl_borough.groupby("NAME").size().reset_index()
 stl_counts=stl_counts.rename(columns={0:"counts"})
@@ -499,7 +485,7 @@ from bokeh.io import output_file, show, output_notebook, push_notebook, export_p
 from bokeh.models import ColumnDataSource, GeoJSONDataSource, LinearColorMapper, ColorBar, HoverTool
 from bokeh.palettes import brewer
 import json
-bnb_stl = bnb_gdf[bnb_gdf['maximum_nights']<=90][['price', 'room_type', 'property_type', 'maximum_nights', 'geometry']]
+bnb_stl = bnb_gdf[bnb_gdf['maximum_nights']<=90][['price', 'room_type', 'property_type', 'maximum_nights', 'geometry','number_of_reviews']]
 stl_borough = gpd.sjoin(bnb_stl, boroughs, how="inner", predicate="within")
 stl_counts = stl_borough.groupby("NAME").agg(count=('NAME', 'count'), maximum=('maximum_nights', lambda x: x.mode()[0]), price=('price', 'median')).reset_index()
 stl_merge1 =pd.merge(boroughs, stl_counts, on="NAME")
@@ -528,14 +514,6 @@ p2.add_tools(hover)
 handle = show(p2, notebook_handle=True)
 push_notebook(handle=handle)
 output_notebook() 
-```
-
-```{python}
-stl_merge1.head()
-hover = HoverTool()
-hover.point_policy = "follow_mouse" 
-hover.tooltips = [("Borough", "@NAME"), ("Maximum Nights", "@maximum"), ("Count of Listings", "@count"), ("Median Price", "$@price")]
-p2.add_tools(hover)
 ```
 
 ```{python}
@@ -572,4 +550,98 @@ stl_sh = df[df['maximum_nights']<=90][['host_is_superhost', 'host_total_listings
 stl_sh_count = stl_sh.groupby('host_is_superhost').agg(count_sh=('host_is_superhost', 'count'), mean_count=('host_total_listings_count', 'mean')).reset_index()
 print(stl_sh_count.head())
 print(f'There are a total of listings of {stl.shape[0]} STL listings in London')
+```
+
+```{python}
+#read msoa-level dara using function
+MSOA = gpd.read_file(data_cache('http://orca.casa.ucl.ac.uk/~jreades/data/MSOA-2011.gpkg', dest))
+MSOA = MSOA.to_crs(epsg=27700)
+```
+
+
+```{python}
+#msoa-level msoa 
+bnb_stl = bnb_gdf[bnb_gdf['maximum_nights']<=90][['price', 'room_type', 'property_type', 'maximum_nights', 'geometry', 'number_of_reviews']]
+stl_msoa = gpd.sjoin(bnb_stl, MSOA.drop(columns=['MSOA11NM', 'LAD11CD', 'LAD11NM', 'RGN11CD', 'RGN11NM','USUALRES', 'HHOLDRES', 'COMESTRES', 'POPDEN', 'HHOLDS', 'AVHHOLDSZ']), how="inner", predicate="within")
+stl_counts_msoa = stl_msoa.groupby("MSOA11CD").size().reset_index()
+stl_counts_msoa = stl_counts_msoa.rename(columns={0:"counts"})
+stl_merge_msoa = pd.merge(MSOA.drop(columns=['MSOA11NM', 'LAD11CD', 'LAD11NM', 'RGN11CD', 'RGN11NM','USUALRES', 'HHOLDRES', 'COMESTRES', 'POPDEN', 'HHOLDS', 'AVHHOLDSZ']), stl_counts_msoa, on="MSOA11CD")
+f, ax = plt.subplots(figsize=(12,8))
+ax = stl_merge_msoa.plot(ax=ax, column="counts", cmap="viridis", edgecolor="black", legend=True)
+plt.title("Airbnb STL Listings Distribution in Boroughs")
+plt.show()
+```
+
+```{python}
+from sklearn.neighbors import NearestNeighbors
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, PowerTransformer
+from sklearn.cluster import KMeans 
+from sklearn.metrics import silhouette_samples, silhouette_score
+
+pivot_stl = stl_borough.groupby(['GSS_CODE','room_type'], observed=False)['index_right'].agg(Count='count').reset_index().pivot(index='GSS_CODE', columns='room_type', values='Count')         
+pivot_stl.drop(['Hotel room', 'Shared room'], axis=1, inplace=True)
+pivot_norm = pd.DataFrame(index=pivot_stl.index)
+for cols in pivot_stl.columns:
+    pivot_norm[cols]=PowerTransformer().fit_transform(pivot_stl[cols].to_numpy().reshape(-1, 1))
+clu_median = stl_borough.groupby(by='GSS_CODE').price.agg('median')
+pivot_norm["median price"] = pd.Series(np.squeeze(RobustScaler().fit_transform(clu_median.values.reshape(-1,1))), index=clu_median.index) 
+reviews_mean = stl_borough.groupby(by='GSS_CODE')["number_of_reviews"].agg('mean')
+pivot_norm["mean reviews"] = pd.Series(np.squeeze(MinMaxScaler().fit_transform(reviews_mean.values.reshape(-1,1))), index=reviews_mean.index) 
+#find suitable k
+#k_range = []
+#scores = []
+#for k in range(2,32):
+    #kmeans = KMeans(n_clusters=k, n_init=25, random_state=42).fit(pivot_norm)
+    #ave_score = silhouette_score(pivot_norm, kmeans.labels_)
+    #k_range.append(k)
+    #scores.append(ave_score)
+#plt.plot(k_range, scores)
+#plt.gcf().suptitle("Average Silhouette Scores");
+n = 5
+colors = ['#8B4513', '#D2691E', '#DAA520', '#CD853F', '#A0522D']
+kmeans = KMeans(n_clusters=n, n_init=25, random_state=42).fit(pivot_norm)
+pivot_norm['cluster']=kmeans.labels_
+result_clu_stl = boroughs.merge(pivot_norm, on="GSS_CODE")
+f, ax = plt.subplots(figsize=(12,8))
+result_clu_stl.plot(ax=ax, column="cluster", cmap=matplotlib.colors.ListedColormap(colors), edgecolor="black")
+plt.title("STL Cluster By London Boroughs")
+plt.show()
+```
+
+```{python}
+bnb_1 = bnb_gdf[['price', 'room_type', 'property_type', 'maximum_nights', 'geometry', 'number_of_reviews']]
+msoa_listings = gpd.sjoin(bnb_1, MSOA.drop(columns=['MSOA11NM', 'LAD11CD', 'LAD11NM', 'RGN11CD', 'RGN11NM','USUALRES', 'HHOLDRES', 'COMESTRES', 'POPDEN', 'HHOLDS', 'AVHHOLDSZ']), how="inner", predicate="within")
+count_msoa = msoa_listings.groupby('MSOA11CD')['index_right'].agg('count').reset_index()
+count_msoa.rename(columns={'index_right': 'Count'}, inplace=True)
+count_msoa.set_index('MSOA11CD', inplace=True)
+count_msoa['Count'] = PowerTransformer().fit_transform(count_msoa['Count'].to_numpy().reshape(-1, 1))
+price_msoa = stl_msoa.groupby(by='MSOA11CD').price.agg('median')
+count_msoa["median price"] = pd.Series(np.squeeze(RobustScaler().fit_transform(price_msoa.values.reshape(-1,1))), index=price_msoa.index) 
+reviews_msoa = stl_msoa.groupby(by='MSOA11CD')["number_of_reviews"].agg('mean')
+count_msoa["mean reviews"] = pd.Series(np.squeeze(MinMaxScaler().fit_transform(reviews_msoa.values.reshape(-1,1))), index=reviews_msoa.index) 
+#find suitable k
+k_range = []
+scores = []
+for k in range(2,32):
+    kmeans = KMeans(n_clusters=k, n_init=25, random_state=42).fit(msoa_pca)
+    ave_score = silhouette_score(msoa_pca, kmeans.labels_)
+    k_range.append(k)
+    scores.append(ave_score)
+plt.plot(k_range, scores)
+plt.gcf().suptitle("Average Silhouette Scores");
+```
+
+
+
+```{python}
+n = 5
+colors = ['#8B4513', '#D2691E', '#DAA520', '#CD853F', '#A0522D']
+kmeans = KMeans(n_clusters=n, n_init=25, random_state=42).fit(pivot_norm)
+pivot_norm['cluster']=kmeans.labels_
+result_clu_stl = boroughs.merge(pivot_norm, on="GSS_CODE")
+f, ax = plt.subplots(figsize=(12,8))
+result_clu_stl.plot(ax=ax, column="cluster", cmap=matplotlib.colors.ListedColormap(colors), edgecolor="black")
+plt.title("STL Cluster By London Boroughs")
+plt.show()
 ```
