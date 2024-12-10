@@ -463,7 +463,6 @@ agg = agg_df.groupby(by=['property_type','room_type']).agg(counts = ("property_t
 agg.head(20)
 ```
 
-
 ```{python}
 # Unless planning permission is obtained, Londoners are restricted to renting their property short term for a maximum of 90 nights in a calendar year.
 # from https://www.london.gov.uk/programmes-strategies/housing-and-land/improving-private-rented-sector/guidance-short-term-and-holiday-lets-london
@@ -556,8 +555,8 @@ print(f'There are a total of listings of {stl.shape[0]} STL listings in London')
 #read msoa-level dara using function
 MSOA = gpd.read_file(data_cache('http://orca.casa.ucl.ac.uk/~jreades/data/MSOA-2011.gpkg', dest))
 MSOA = MSOA.to_crs(epsg=27700)
+MSOA['area_km2'] = MSOA['geometry'].area/1e6
 ```
-
 
 ```{python}
 #msoa-level msoa 
@@ -576,7 +575,7 @@ plt.show()
 from sklearn.neighbors import NearestNeighbors
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, PowerTransformer
-from sklearn.cluster import KMeans 
+from sklearn.cluster import KMeans, DBSCAN 
 from sklearn.metrics import silhouette_samples, silhouette_score
 
 pivot_stl = stl_borough.groupby(['GSS_CODE','room_type'], observed=False)['index_right'].agg(Count='count').reset_index().pivot(index='GSS_CODE', columns='room_type', values='Count')         
@@ -613,35 +612,95 @@ plt.show()
 bnb_1 = bnb_gdf[['price', 'room_type', 'property_type', 'maximum_nights', 'geometry', 'number_of_reviews']]
 msoa_listings = gpd.sjoin(bnb_1, MSOA.drop(columns=['MSOA11NM', 'LAD11CD', 'LAD11NM', 'RGN11CD', 'RGN11NM','USUALRES', 'HHOLDRES', 'COMESTRES', 'POPDEN', 'HHOLDS', 'AVHHOLDSZ']), how="inner", predicate="within")
 count_msoa = msoa_listings.groupby('MSOA11CD')['index_right'].agg('count').reset_index()
+count_msoa['area_km2'] = count_msoa['MSOA11CD'].map(msoa_listings.groupby('MSOA11CD')['area_km2'].first())
 count_msoa.rename(columns={'index_right': 'Count'}, inplace=True)
 count_msoa.set_index('MSOA11CD', inplace=True)
-count_msoa['Count'] = PowerTransformer().fit_transform(count_msoa['Count'].to_numpy().reshape(-1, 1))
-price_msoa = stl_msoa.groupby(by='MSOA11CD').price.agg('median')
+count_msoa["density"]=round(count_msoa["Count"]/count_msoa["area_km2"],2)
+count_msoa.drop(['Count', 'area_km2'], axis=1, inplace=True)
+count_msoa['density'] = PowerTransformer().fit_transform(count_msoa['density'].to_numpy().reshape(-1, 1))
+price_msoa = msoa_listings.groupby(by='MSOA11CD').price.agg('median')
 count_msoa["median price"] = pd.Series(np.squeeze(RobustScaler().fit_transform(price_msoa.values.reshape(-1,1))), index=price_msoa.index) 
-reviews_msoa = stl_msoa.groupby(by='MSOA11CD')["number_of_reviews"].agg('mean')
+reviews_msoa = msoa_listings.groupby(by='MSOA11CD')["number_of_reviews"].agg('count')
 count_msoa["mean reviews"] = pd.Series(np.squeeze(MinMaxScaler().fit_transform(reviews_msoa.values.reshape(-1,1))), index=reviews_msoa.index) 
 #find suitable k
-k_range = []
+k_range = [] 
 scores = []
-for k in range(2,32):
-    kmeans = KMeans(n_clusters=k, n_init=25, random_state=42).fit(msoa_pca)
-    ave_score = silhouette_score(msoa_pca, kmeans.labels_)
+for k in range(2,30):
+    kmeans = KMeans(n_clusters=k, n_init=25, random_state=42).fit(count_msoa)
+    ave_score = silhouette_score(count_msoa, kmeans.labels_)
     k_range.append(k)
     scores.append(ave_score)
 plt.plot(k_range, scores)
 plt.gcf().suptitle("Average Silhouette Scores");
 ```
 
-
+```{python}
+from kneed import KneeLocator
+db_name = "DBSCAN"
+nearest_nei = NearestNeighbors(n_neighbors=6).fit(count_msoa)
+neigh_distance, _ = nearest_nei.kneighbors(count_msoa)  
+neigh_distance = np.sort(neigh_distance, axis=0)
+neigh_distance = neigh_distance[:, 1]
+kn = KneeLocator(np.arange(neigh_distance.shape[0]), neigh_distance, S=12, curve='convex', direction='increasing')
+kn.plot_knee()
+kn.plot_knee_normalized()
+epsilon_knee = neigh_distance[kn.knee]
+print(f'the best epsilon is {epsilon_knee}')
+dbscan = DBSCAN(eps=epsilon_knee, min_samples=count_msoa.shape[1]+1).fit(count_msoa.values)
+clu_name = pd.Series(dbscan.labels_, index=count_msoa.index, name=db_name)
+count_msoa[db_name] = clu_name
+cols = ['density', 'median price', 'mean reviews']
+centroid_mean = pd.DataFrame(columns=cols)
+for k in sorted(count_msoa[db_name].unique()):
+    print(f"Processing cluster {k}")
+    cluster = count_msoa[count_msoa[db_name]==k]  
+    centroid_mean.loc[k] = cluster[cols].mean()  
+centroid_mean.drop(labels=[-1], axis=0, inplace=True) MSOA = gpd.read_file(data_cache('http://orca.casa.ucl.ac.uk/~jreades/data/MSOA-2011.gpkg', dest))
+```
 
 ```{python}
-n = 5
-colors = ['#8B4513', '#D2691E', '#DAA520', '#CD853F', '#A0522D']
-kmeans = KMeans(n_clusters=n, n_init=25, random_state=42).fit(pivot_norm)
-pivot_norm['cluster']=kmeans.labels_
-result_clu_stl = boroughs.merge(pivot_norm, on="GSS_CODE")
-f, ax = plt.subplots(figsize=(12,8))
-result_clu_stl.plot(ax=ax, column="cluster", cmap=matplotlib.colors.ListedColormap(colors), edgecolor="black")
-plt.title("STL Cluster By London Boroughs")
-plt.show()
+#read parquet, do one-hot encode
+msoa_atlas = pd.read_parquet("https://github.com/BiuLei0527/CASA0013_groupwork/raw/refs/heads/main/MSOA_Atlas.parquet")
+from sklearn.preprocessing import OneHotEncoder
+from umap import UMAP
+msoa_atlas.set_index("MSOA Code", inplace=True)
+boro_enco = OneHotEncoder(sparse_output=False)
+sub_enco = OneHotEncoder(sparse_output=False)
+encoded_borough = boro_enco.fit_transform(msoa_atlas[['Borough']])
+encoded_subregion = sub_enco.fit_transform(msoa_atlas[['Subregion']])
+encoded_boro = pd.DataFrame(encoded_borough, columns=boro_enco.get_feature_names_out(['Borough']),index=msoa_atlas.index)
+encoded_sub = pd.DataFrame(encoded_subregion, columns=sub_enco.get_feature_names_out(['Subregion']),index=msoa_atlas.index)
 ```
+
+```{python}
+#choose cluster variables
+cluster = msoa_atlas.drop(['MSOA Name', 'Borough', 'Subregion',
+    "Age-All Ages", "Households-All Households", 
+    "Economic Activity-Economically inactive: Total", 
+    "Economic Activity-Economically active: Total", 
+    "Total Median hh Income", "Detached", "Semi-detached",
+    "Terraced (including end-terrace)", "Flat, maisonette or apartment", 
+    "Population Density-Persons per hectare (2012)", 
+    "Qualifications-Other", "Vehicles-Cars per hh", 
+    "BAME", "Language-1+ English as a main language", 
+    "Language-None have English as main language", 'Vehicles-Sum of all cars or vans in the area'], axis=1)
+cluster.set_index("MSOA Code", inplace=True)
+cluster = pd.concat([cluster, encoded_boro, encoded_sub], axis=1)
+```
+
+```{python}
+#do standardising
+scaler_data = cluster.loc[:, 'Age-0-15':'Vehicles-4 or more cars or vans in hh'] 
+scaler = RobustScaler().fit_transform(scaler_data)
+cluster.loc[:, 'Age-0-15':'Vehicles-4 or more cars or vans in hh'] = scaler
+```
+
+```{python}
+#reduce dimensionality using umap
+dimensions=3 
+umap = UMAP(n_neighbors=25, min_dist=0.05, n_components=dimensions, random_state=42)
+umap_clu = umap.fit_transform(cluster)
+print(umap_clu.shape)
+```
+
+
