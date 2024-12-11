@@ -572,6 +572,7 @@ plt.show()
 ```
 
 ```{python}
+# kmeans for stl in london by borough
 from sklearn.neighbors import NearestNeighbors
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, PowerTransformer
@@ -606,9 +607,50 @@ f, ax = plt.subplots(figsize=(12,8))
 result_clu_stl.plot(ax=ax, column="cluster", cmap=matplotlib.colors.ListedColormap(colors), edgecolor="black")
 plt.title("STL Cluster By London Boroughs")
 plt.show()
+col = ["Entire home/apt", "Private room", "median price","mean reviews"]
+centroid_boro = pd.DataFrame(columns=col)
+for k in sorted(result_clu_stl["cluster"].unique()):
+    print(f"Processing cluster {k}")
+    clust_boro = result_clu_stl[result_clu_stl["cluster"]==k]
+    centroid_boro.loc[k] = clust_boro[col].mean()
 ```
 
 ```{python}
+#density of hotels and attractions by borough
+#borough_density = gpd.read_file(data_cache('https://github.com/BiuLei0527/CASA0013_groupwork/raw/refs/heads/main/Borough_density.gpkg', dest))
+borough_density = borough_density.to_crs(epsg=27700)
+density = borough_density[['GSS_CODE','density_hotel', 'attractions_hotel']]
+density.set_index('GSS_CODE', inplace=True)
+density_st = StandardScaler().fit_transform(density) 
+density_st_df = pd.DataFrame(density_st, columns=["density_hotel", "attractions_hotel"], index=density.index)
+k_ran = []
+score = []
+for k in range(2,32):
+    kmeans = KMeans(n_clusters=k, n_init=25, random_state=42).fit(density_st)
+    average_score = silhouette_score(density_st, kmeans.labels_)
+    k_ran.append(k)
+    score.append(average_score)
+plt.plot(k_ran, score)
+plt.gcf().suptitle("Average Silhouette Scores");
+i = 4
+k_mean = KMeans(n_clusters=i, n_init=25, random_state=42).fit(density_st_df)
+density_st_df['cluster']=k_mean.labels_
+result_clu_density = boroughs.merge(density_st_df, on="GSS_CODE")
+f, ax = plt.subplots(figsize=(12,8))
+result_clu_density.plot(ax=ax, column="cluster", cmap='BuPu', edgecolor="black")
+plt.title("STL Cluster By London Boroughs")
+plt.show()
+co = ["density_hotel", "attractions_hotel"]
+centroid_dense = pd.DataFrame(columns=co)
+for k in sorted(density_st_df["cluster"].unique()):
+    print(f"Processing cluster {k}")
+    clu_dense = density_st_df[density_st_df["cluster"]==k]
+    centroid_dense.loc[k] = clu_dense[co].mean()
+```
+
+
+```{python}
+#try k-means for msoa-level airbnb data
 bnb_1 = bnb_gdf[['price', 'room_type', 'property_type', 'maximum_nights', 'geometry', 'number_of_reviews']]
 msoa_listings = gpd.sjoin(bnb_1, MSOA.drop(columns=['MSOA11NM', 'LAD11CD', 'LAD11NM', 'RGN11CD', 'RGN11NM','USUALRES', 'HHOLDRES', 'COMESTRES', 'POPDEN', 'HHOLDS', 'AVHHOLDSZ']), how="inner", predicate="within")
 count_msoa = msoa_listings.groupby('MSOA11CD')['index_right'].agg('count').reset_index()
@@ -635,6 +677,7 @@ plt.gcf().suptitle("Average Silhouette Scores");
 ```
 
 ```{python}
+#find knee point for dbscan then do dbscan
 from kneed import KneeLocator
 db_name = "DBSCAN"
 nearest_nei = NearestNeighbors(n_neighbors=6).fit(count_msoa)
@@ -655,7 +698,7 @@ for k in sorted(count_msoa[db_name].unique()):
     print(f"Processing cluster {k}")
     cluster = count_msoa[count_msoa[db_name]==k]  
     centroid_mean.loc[k] = cluster[cols].mean()  
-centroid_mean.drop(labels=[-1], axis=0, inplace=True) MSOA = gpd.read_file(data_cache('http://orca.casa.ucl.ac.uk/~jreades/data/MSOA-2011.gpkg', dest))
+centroid_mean.drop(labels=[-1], axis=0, inplace=True) 
 ```
 
 ```{python}
@@ -684,7 +727,6 @@ cluster = msoa_atlas.drop(['MSOA Name', 'Borough', 'Subregion',
     "Qualifications-Other", "Vehicles-Cars per hh", 
     "BAME", "Language-1+ English as a main language", 
     "Language-None have English as main language", 'Vehicles-Sum of all cars or vans in the area'], axis=1)
-cluster.set_index("MSOA Code", inplace=True)
 cluster = pd.concat([cluster, encoded_boro, encoded_sub], axis=1)
 ```
 
@@ -701,6 +743,33 @@ dimensions=3
 umap = UMAP(n_neighbors=25, min_dist=0.05, n_components=dimensions, random_state=42)
 umap_clu = umap.fit_transform(cluster)
 print(umap_clu.shape)
+clu_u = pd.DataFrame(index=cluster.index)
+for i in range(0,umap_clu.shape[1]): 
+    print(i)
+    u = pd.Series(umap_clu[:,i], index=cluster.index) 
+    clu_u[f"Dimension {i+1}"] = u
 ```
 
-
+```{python}
+#dbscan for MSOA-level community based on above socio-economic characteristics
+db_name1 = "DBSCAN"
+nearest_neighbor = NearestNeighbors(n_neighbors=6).fit(clu_u)
+neigh_distance1, _ = nearest_neighbor.kneighbors(clu_u)  
+neigh_distance1 = np.sort(neigh_distance1, axis=0)
+neigh_distance1 = neigh_distance1[:, 1]
+kn1 = KneeLocator(np.arange(neigh_distance1.shape[0]), neigh_distance1, S=12, curve='convex', direction='increasing')
+kn1.plot_knee()
+kn1.plot_knee_normalized()
+epsilon_knee1 = neigh_distance1[kn1.knee]
+print(f'the best epsilon is {epsilon_knee1}')
+dbscan1 = DBSCAN(eps=epsilon_knee1, min_samples=clu_u.shape[1]+1).fit(clu_u.values)
+clu_name1 = pd.Series(dbscan1.labels_, index=clu_u.index, name=db_name1)
+clu_u[db_name1] = clu_name1
+cols1 = ['Dimension 1', 'Dimension 2', 'Dimension 3']
+centroid_mean1 = pd.DataFrame(columns=cols1)
+for k in sorted(clu_u[db_name1].unique()):
+    print(f"Processing cluster {k}")
+    cluster1 = clu_u[clu_u[db_name1]==k]  
+    centroid_mean1.loc[k] = cluster1[cols1].mean()  
+centroid_mean1.drop(labels=[-1], axis=0, inplace=True) 
+```
